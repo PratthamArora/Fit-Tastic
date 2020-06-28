@@ -17,4 +17,5 @@
     <string name="your_weight">Your Weight</string>
     <string name="kg">kg</string>
     <string name="continue_btn">Continue</string>
+    <string name="apply_changes">Apply Changes</string>
 </resources>
