@@ -8,4 +8,13 @@
         <item>Calories Burned</item>
     </string-array>
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">ENTER YOUR API KEY HERE</string>
+    <string name="dev_name">by - Prattham Arora</string>
+    <string name="runs">Runs</string>
+    <string name="stats">Stats</string>
+    <string name="settings">Settings</string>
+    <string name="welcome_nplease_enter_your_name_and_weight">Welcome!\nPlease enter your name and weight.</string>
+    <string name="your_name">Your Name</string>
+    <string name="your_weight">Your Weight</string>
+    <string name="kg">kg</string>
+    <string name="continue_btn">Continue</string>
 </resources>
