@@ -1,12 +1,15 @@
 package com.pratthamarora.fit_tastic.ui.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.gms.maps.GoogleMap
 import com.pratthamarora.fit_tastic.R
+import com.pratthamarora.fit_tastic.services.TrackingService
 import com.pratthamarora.fit_tastic.ui.viewmodel.MainViewModel
+import com.pratthamarora.fit_tastic.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_tracking.*
 
@@ -19,10 +22,22 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mapView.onCreate(savedInstanceState)
+
+        btnToggleRun.setOnClickListener {
+            sendCommandToService(Constants.ACTION_START_RESUME_SERVICE)
+        }
         mapView.getMapAsync {
             map = it
         }
+
     }
+
+    private fun sendCommandToService(action: String) =
+        Intent(requireContext(), TrackingService::class.java).also {
+            it.action = action
+            requireContext().startService(it)
+        }
+
 
     override fun onResume() {
         super.onResume()
