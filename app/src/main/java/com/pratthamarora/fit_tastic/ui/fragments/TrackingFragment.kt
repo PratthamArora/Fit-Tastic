@@ -21,6 +21,7 @@ import com.pratthamarora.fit_tastic.utils.Constants.ACTION_START_RESUME_SERVICE
 import com.pratthamarora.fit_tastic.utils.Constants.MAP_ZOOM
 import com.pratthamarora.fit_tastic.utils.Constants.POLYLINE_COLOR
 import com.pratthamarora.fit_tastic.utils.Constants.POLYLINE_WIDTH
+import com.pratthamarora.fit_tastic.utils.Utility
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_tracking.*
 
@@ -32,6 +33,7 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     private var pathPoints = mutableListOf<Polyline>()
 
     private var map: GoogleMap? = null
+    private var curTimeInMillis = 0L
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -56,6 +58,12 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
             pathPoints = it
             addLatestPolyline()
             moveCameraToUser()
+        })
+
+        TrackingService.timeRunInMillis.observe(viewLifecycleOwner, Observer {
+            curTimeInMillis = it
+            val formattedTime = Utility.getFormattedStopWatchTime(curTimeInMillis, true)
+            tvTimer.text = formattedTime
         })
     }
 
