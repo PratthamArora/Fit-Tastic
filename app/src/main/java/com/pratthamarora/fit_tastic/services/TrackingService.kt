@@ -36,29 +36,32 @@ import com.pratthamarora.fit_tastic.utils.Constants.NOTIFICATION_ID
 import com.pratthamarora.fit_tastic.utils.Utility
 import timber.log.Timber
 
+typealias Polyline = MutableList<LatLng>
+typealias Polylines = MutableList<Polyline>
+
 class TrackingService : LifecycleService() {
+
+    var isFirstRun = true
 
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     companion object {
         val isTracking = MutableLiveData<Boolean>()
-        val pathCoordinates = MutableLiveData<MutableList<MutableList<LatLng>>>()
+        val pathPoints = MutableLiveData<Polylines>()
     }
 
-    var isFirstRun = true
-
-    private fun postInitialValue() {
+    private fun postInitialValues() {
         isTracking.postValue(false)
-        pathCoordinates.postValue(mutableListOf())
+        pathPoints.postValue(mutableListOf())
     }
 
     override fun onCreate() {
         super.onCreate()
-        postInitialValue()
+        postInitialValues()
         fusedLocationProviderClient = FusedLocationProviderClient(this)
 
         isTracking.observe(this, Observer {
-            updateTracking(it)
+            updateLocationTracking(it)
         })
     }
 
@@ -66,28 +69,34 @@ class TrackingService : LifecycleService() {
         intent?.let {
             when (it.action) {
                 ACTION_START_RESUME_SERVICE -> {
-                    if (isFirstRun) {
+                    if(isFirstRun) {
                         startForegroundService()
                         isFirstRun = false
                     } else {
-                        Timber.d("not a first run")
+                        Timber.d("Resuming service...")
+                        startForegroundService()
                     }
                 }
                 ACTION_PAUSE_SERVICE -> {
-                    Timber.d("paused service")
+                    Timber.d("Paused service")
+                    pauseService()
                 }
                 ACTION_STOP_SERVICE -> {
-                    Timber.d("stopped service")
+                    Timber.d("Stopped service")
                 }
             }
         }
         return super.onStartCommand(intent, flags, startId)
     }
 
+    private fun pauseService() {
+        isTracking.postValue(false)
+    }
+
     @SuppressLint("MissingPermission")
-    private fun updateTracking(isTracking: Boolean) {
-        if (isTracking) {
-            if (Utility.hasLocationPermission(this)) {
+    private fun updateLocationTracking(isTracking: Boolean) {
+        if(isTracking) {
+            if(Utility.hasLocationPermission(this)) {
                 val request = LocationRequest().apply {
                     interval = LOCATION_UPDATE_INTERVAL
                     fastestInterval = FASTEST_LOCATION_UPDATE_INTERVAL
@@ -98,43 +107,64 @@ class TrackingService : LifecycleService() {
                     locationCallback,
                     Looper.getMainLooper()
                 )
-            } else {
-                fusedLocationProviderClient.removeLocationUpdates(locationCallback)
             }
+        } else {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback)
         }
     }
 
     val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult?) {
             super.onLocationResult(result)
-            if (isTracking.value!!) {
-                result?.locations?.let {
-                    for (location in it) {
-                        addPathPoints(location)
-                        Timber.d("new location : ${location.latitude}, ${location.longitude}")
+            if(isTracking.value!!) {
+                result?.locations?.let { locations ->
+                    for(location in locations) {
+                        addPathPoint(location)
+                        Timber.d("NEW LOCATION: ${location.latitude}, ${location.longitude}")
                     }
                 }
             }
         }
     }
 
-    private fun addPathPoints(location: Location?) {
+    private fun addPathPoint(location: Location?) {
         location?.let {
-            val pos = LatLng(it.latitude, it.longitude)
-            pathCoordinates.value?.apply {
+            val pos = LatLng(location.latitude, location.longitude)
+            pathPoints.value?.apply {
                 last().add(pos)
-                pathCoordinates.postValue(this)
+                pathPoints.postValue(this)
             }
-
         }
     }
 
-    private fun addEmptyPath() = pathCoordinates.value?.apply {
+    private fun addEmptyPolyline() = pathPoints.value?.apply {
         add(mutableListOf())
-        pathCoordinates.postValue(this)
-    } ?: pathCoordinates.postValue(mutableListOf(mutableListOf()))
+        pathPoints.postValue(this)
+    } ?: pathPoints.postValue(mutableListOf(mutableListOf()))
 
-    private fun getActivityPendingIntent() = PendingIntent.getActivity(
+    private fun startForegroundService() {
+        addEmptyPolyline()
+        isTracking.postValue(true)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel(notificationManager)
+        }
+
+        val notificationBuilder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .setSmallIcon(R.drawable.ic_directions_run_black_24dp)
+            .setContentTitle("Running App")
+            .setContentText("00:00:00")
+            .setContentIntent(getMainActivityPendingIntent())
+
+        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+    }
+
+    private fun getMainActivityPendingIntent() = PendingIntent.getActivity(
         this,
         0,
         Intent(this, MainActivity::class.java).also {
@@ -142,27 +172,6 @@ class TrackingService : LifecycleService() {
         },
         FLAG_UPDATE_CURRENT
     )
-
-    private fun startForegroundService() {
-        addEmptyPath()
-        isTracking.postValue(true)
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel(notificationManager)
-        }
-        val notificationBuilder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setAutoCancel(false)
-            .setOngoing(true)
-            .setSmallIcon(R.drawable.ic_directions_run_black_24dp)
-            .setContentTitle("Fit-Tastic")
-            .setContentText("00:00:00")
-            .setContentIntent(getActivityPendingIntent())
-
-        startForeground(NOTIFICATION_ID, notificationBuilder.build())
-    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(notificationManager: NotificationManager) {
