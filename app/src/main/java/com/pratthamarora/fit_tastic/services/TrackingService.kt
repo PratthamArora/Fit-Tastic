@@ -23,9 +23,7 @@ import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.model.LatLng
 import com.pratthamarora.fit_tastic.R
-import com.pratthamarora.fit_tastic.ui.MainActivity
 import com.pratthamarora.fit_tastic.utils.Constants.ACTION_PAUSE_SERVICE
-import com.pratthamarora.fit_tastic.utils.Constants.ACTION_SHOW_TRACKING_FRAGMENT
 import com.pratthamarora.fit_tastic.utils.Constants.ACTION_START_RESUME_SERVICE
 import com.pratthamarora.fit_tastic.utils.Constants.ACTION_STOP_SERVICE
 import com.pratthamarora.fit_tastic.utils.Constants.FASTEST_LOCATION_UPDATE_INTERVAL
@@ -50,10 +48,12 @@ typealias Polylines = MutableList<Polyline>
 class TrackingService : LifecycleService() {
 
     var isFirstRun = true
+    var serviceStopped = false
 
     @Inject
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private val timeRunInSeconds = MutableLiveData<Long>()
+
     @Inject
     lateinit var baseNotificationBuilder: NotificationCompat.Builder
     lateinit var curNotificationBuilder: NotificationCompat.Builder
@@ -83,6 +83,15 @@ class TrackingService : LifecycleService() {
         })
     }
 
+    private fun stopService() {
+        serviceStopped = true
+        isFirstRun = true
+        pauseService()
+        postInitialValues()
+        stopForeground(true)
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
             when (it.action) {
@@ -101,6 +110,7 @@ class TrackingService : LifecycleService() {
                 }
                 ACTION_STOP_SERVICE -> {
                     Timber.d("Stopped service")
+                    stopService()
                 }
             }
         }
@@ -140,8 +150,8 @@ class TrackingService : LifecycleService() {
     }
 
     private fun updateNotificationTrackingState(isTracking: Boolean) {
-        val notificationActionText = if(isTracking) "Pause" else "Resume"
-        val pendingIntent = if(isTracking) {
+        val notificationActionText = if (isTracking) "Pause" else "Resume"
+        val pendingIntent = if (isTracking) {
             val pauseIntent = Intent(this, TrackingService::class.java).apply {
                 action = ACTION_PAUSE_SERVICE
             }
@@ -153,15 +163,19 @@ class TrackingService : LifecycleService() {
             PendingIntent.getService(this, 2, resumeIntent, FLAG_UPDATE_CURRENT)
         }
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         curNotificationBuilder.javaClass.getDeclaredField("mActions").apply {
             isAccessible = true
             set(curNotificationBuilder, ArrayList<NotificationCompat.Action>())
         }
-        curNotificationBuilder = baseNotificationBuilder
-            .addAction(R.drawable.ic_pause_black_24dp, notificationActionText, pendingIntent)
-        notificationManager.notify(NOTIFICATION_ID, curNotificationBuilder.build())
+        if (!serviceStopped) {
+            curNotificationBuilder = baseNotificationBuilder
+                .addAction(R.drawable.ic_pause_black_24dp, notificationActionText, pendingIntent)
+            notificationManager.notify(NOTIFICATION_ID, curNotificationBuilder.build())
+        }
+
     }
 
     @SuppressLint("MissingPermission")
@@ -227,9 +241,11 @@ class TrackingService : LifecycleService() {
         startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
 
         timeRunInSeconds.observe(this, Observer {
-            val notification = curNotificationBuilder
-                .setContentText(Utility.getFormattedStopWatchTime(it * 1000L))
-            notificationManager.notify(NOTIFICATION_ID, notification.build())
+            if (!serviceStopped) {
+                val notification = curNotificationBuilder
+                    .setContentText(Utility.getFormattedStopWatchTime(it * 1000L))
+                notificationManager.notify(NOTIFICATION_ID, notification.build())
+            }
         })
     }
 
