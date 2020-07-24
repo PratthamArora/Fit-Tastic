@@ -30,12 +30,14 @@ import com.pratthamarora.fit_tastic.utils.Utility
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_tracking.*
 import java.util.*
+import javax.inject.Inject
 import kotlin.math.round
 
 @AndroidEntryPoint
 class TrackingFragment : Fragment(R.layout.fragment_tracking) {
 
-    private var weight = 70f
+    @set:Inject
+    var weight = 70f
     private val viewModel: MainViewModel by viewModels()
 
     private var isTracking = false

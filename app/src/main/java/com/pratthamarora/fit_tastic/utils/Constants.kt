@@ -18,4 +18,8 @@ object Constants {
     const val POLYLINE_COLOR = Color.RED
     const val POLYLINE_WIDTH = 8f
     const val MAP_ZOOM = 15f
+    const val SHARED_PREFS = "sharedPrefs"
+    const val KEY_NAME = "keyName"
+    const val KEY_WEIGHT = "keyWeight"
+    const val FIRST_RUN = "firstRun"
 }
