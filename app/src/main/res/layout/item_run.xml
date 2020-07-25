@@ -9,12 +9,12 @@
     <ImageView
         android:id="@+id/ivRunImage"
         android:layout_width="match_parent"
-        tools:src="@mipmap/ic_launcher"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:src="@mipmap/ic_launcher" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tvDate"
