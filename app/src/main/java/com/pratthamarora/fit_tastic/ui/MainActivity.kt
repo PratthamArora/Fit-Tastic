@@ -26,6 +26,8 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.subtitle = getString(R.string.dev_name)
 
         bottomNavigationView.setupWithNavController(navHostFragment.findNavController())
+        bottomNavigationView.setOnNavigationItemReselectedListener { //stop reload of fragment
+        }
 
         navHostFragment.findNavController().addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
