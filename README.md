@@ -3,4 +3,4 @@ A Fitness Tracker app that tracks the runs of the user using google maps and dis
 
 # Demo
 
- <img src="app/demo/fit-tastic.gif" width="300"/>
+ <img src="app/demo/fit-tastic.gif"/>
